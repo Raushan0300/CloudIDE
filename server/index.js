@@ -30,6 +30,34 @@ ptyProcess.onData((data)=>{
     io.emit('terminal:output', data);
 });
 
+async function getFileStructure(directory){
+    const tree = {};
+
+    async function readDir(dir, tree){
+        const files = await fs.readdir(dir);
+
+        for(const file of files){
+            const filepath = path.join(dir, file);
+            const stat = await fs.stat(filepath);
+
+            if(stat.isDirectory()){
+                tree[file] = {};
+                await readDir(filepath, tree[file]);
+            } else{
+                tree[file] = null;
+            }
+        }
+    }
+
+    await readDir(directory, tree);
+    return tree;
+}
+
+app.get('/files', async(req, res)=>{
+    const tree = await getFileStructure('./client');
+    return res.json(tree);
+});
+
 io.on('connection', (socket)=>{
     console.log('New connection', socket.id);
 
